@@ -1,0 +1,251 @@
+<!doctype html>
+<html lang="ko">
+<head>
+<meta charset="utf-8">
+<meta name="viewport" content="width=device-width, initial-scale=1, viewport-fit=cover">
+<title>단장 방명록</title>
+<meta name="description" content="디지털 납골당을 다녀가신 흔적을 남겨 주세요.">
+<link rel="icon" href="butterfly.png">
+<link rel="preconnect" href="https://fonts.googleapis.com">
+<link rel="preconnect" href="https://fonts.gstatic.com" crossorigin>
+<link rel="stylesheet" href="https://fonts.googleapis.com/css2?family=Noto+Serif+KR:wght@300;400;500&family=IBM+Plex+Sans+KR:wght@300;400;500&display=swap">
+<script>
+/* ════════ 설정: Supabase 프로젝트 정보 (설치 방법 4단계에서 복사해 넣기) ════════
+   비워 두면 '미리보기 모드'로 열려요 (예시 글이 보이고, 남긴 글은 저장되지 않음). */
+window.GUESTBOOK_CONFIG = {
+  SUPABASE_URL: "https://npnuitgxdoolohnjnbhu.supabase.co",        // 예: "https://abcdefghijk.supabase.co"
+  SUPABASE_ANON_KEY: "eyJhbGciOiJIUzI1NiIsInR5cCI6IkpXVCJ9.eyJpc3MiOiJzdXBhYmFzZSIsInJlZiI6Im5wbnVpdGd4ZG9vbG9obmpuYmh1Iiwicm9sZSI6ImFub24iLCJpYXQiOjE3OTE4OTY5MzgsImV4cCI6MjEwNzQ3MjkzOH0.hUdajMBanwu7r2zxxG571C3gq1xogvUi5ZHBqz8VnNg",   // 예: "eyJhbGciOi..." (anon public 키)
+  HOME_URL: "https://claude.ai/artifact/4BdQBQCxti6nyeUnmfwwpH"   // 단장 홈페이지 주소
+};
+</script>
+<style>
+  :root{
+    --paper:#FFFFFF; --paper-dim:#D0E2F6; --ink:#3C83D3; --ink-soft:#5D9FE9; --mist:#A8CEF8; --hemp-line:#A8CEF8;
+    --blue:#4A8EDA;
+  }
+  *{ box-sizing:border-box; }
+  html{ -webkit-text-size-adjust:100%; }
+  body{
+    margin:0; min-height:100vh; color:var(--ink);
+    font-family:'IBM Plex Sans KR', sans-serif; font-weight:300; line-height:1.8; -webkit-font-smoothing:antialiased;
+    word-break:keep-all; overflow-wrap:break-word;
+    background:var(--paper);
+  }
+  /* 배경: 화면에 고정된 흰색 → 하늘색 + 은은한 원형 빛 (어떤 폰에서도 끊기지 않게 고정 레이어로) */
+  body::before{ content:""; position:fixed; inset:0; z-index:-1; pointer-events:none;
+    background:
+      radial-gradient(900px 420px at 80% 92%, rgba(168,206,248,.55), rgba(168,206,248,0) 70%),
+      linear-gradient(180deg, var(--paper) 0%, var(--paper) 30%, var(--paper-dim) 100%); }
+  a{ color:inherit; }
+  .wrap{ max-width:1100px; margin:0 auto; padding:0 24px; }
+
+  /* 위쪽 바 (홈페이지와 같은 모양) */
+  header{ position:sticky; top:0; z-index:20; height:58px; display:flex; align-items:center; justify-content:space-between; padding:0 20px;
+    background:var(--paper); border-bottom:1px solid var(--hemp-line); }
+  .brand{ display:flex; align-items:center; gap:10px; text-decoration:none; font-family:'Noto Serif KR', serif; font-size:17px; letter-spacing:.3em; }
+  .brand img{ width:24px; height:24px; object-fit:contain; }
+  .home-btn{ border:1px solid var(--ink); padding:7px 18px; font-size:13px; letter-spacing:.12em; text-decoration:none; transition:background .35s, color .35s; }
+  .home-btn:hover{ background:var(--ink); color:#fff; }
+
+  /* 제목 */
+  .intro{ padding:72px 0 36px; }
+  .intro .big{ color:var(--ink); font-family:'Noto Serif KR', serif; font-weight:300; font-size:clamp(56px, 15vw, 132px); line-height:1; letter-spacing:-.01em; margin:0 0 26px -0.04em; white-space:nowrap; }
+  .intro h1{ font-family:'Noto Serif KR', serif; font-weight:400; font-size:22px; line-height:1.6; margin:0 0 8px; text-wrap:balance; }
+  .intro p{ margin:0; color:var(--ink-soft); font-size:15px; }
+
+  /* 글쓰기 칸 */
+  .write{ background:rgba(255,255,255,.82); border:1px solid var(--hemp-line); padding:22px 20px; max-width:620px; backdrop-filter:blur(4px); }
+  .field{ display:block; margin-bottom:14px; }
+  .field span{ display:block; font-size:13px; letter-spacing:.12em; color:var(--ink); margin-bottom:6px; }
+  input[type=text], textarea{ width:100%; border:0; border-bottom:1px solid var(--hemp-line); background:transparent; color:var(--ink);
+    font:inherit; font-weight:400; font-size:16px; padding:6px 2px; outline:none; border-radius:0; transition:border-color .3s; }
+  textarea{ resize:vertical; min-height:96px; line-height:1.8; }
+  input[type=text]:focus, textarea:focus{ border-bottom-color:var(--ink); }
+  ::placeholder{ color:var(--mist); }
+  .row{ display:flex; align-items:center; justify-content:space-between; gap:12px; flex-wrap:wrap; margin-top:6px; }
+  .colors{ display:flex; gap:10px; align-items:center; font-size:12px; color:var(--ink-soft); letter-spacing:.08em; }
+  .colors label{ position:relative; width:22px; height:22px; cursor:pointer; }
+  .colors input{ position:absolute; opacity:0; inset:0; margin:0; cursor:pointer; }
+  .colors i{ display:block; width:22px; height:22px; border:1px solid var(--hemp-line); }
+  .colors input:checked + i{ outline:1px solid var(--ink); outline-offset:3px; }
+  .colors input:focus-visible + i{ outline:2px solid var(--ink); outline-offset:3px; }
+  .count{ font-size:12px; color:var(--mist); }
+  .send{ display:inline-block; padding:13px 34px; border:1px solid var(--ink); background:transparent; color:var(--ink); font:inherit;
+    font-size:14.5px; letter-spacing:.08em; cursor:pointer; transition:background .35s, color .35s; }
+  .send:hover:not(:disabled){ background:var(--ink); color:#fff; }
+  .send:disabled{ opacity:.45; cursor:default; }
+  .nb{ display:inline-block; white-space:nowrap; }
+  .notice{ margin:12px 0 0; font-size:12px; color:var(--ink-soft); opacity:.85; letter-spacing:.02em; }
+  .msg{ min-height:1.6em; margin:10px 0 0; font-size:13.5px; color:var(--ink-soft); }
+  .hp{ position:absolute; left:-9999px; width:1px; height:1px; overflow:hidden; }   /* 스팸 방지용 숨은 칸 */
+
+  /* 글 벽 */
+  .wall-head{ display:flex; align-items:baseline; justify-content:space-between; margin:64px 0 18px; border-top:1px solid var(--hemp-line); padding-top:22px; }
+  .wall-head h2{ font-family:'Noto Serif KR', serif; font-weight:400; font-size:20px; margin:0; }
+  .wall-head span{ font-size:13px; color:var(--ink-soft); letter-spacing:.08em; }
+  .wall{ columns:1; column-gap:16px; padding-bottom:96px; }
+  @media (min-width:640px){ .wall{ columns:2; } }
+  @media (min-width:960px){ .wall{ columns:3; } }
+  .note{ break-inside:avoid; margin:0 0 16px; padding:20px 20px 16px; border:1px solid var(--hemp-line); background:#fff; animation:rise .7s ease both; }
+  .note.c1{ background:var(--paper-dim); }
+  .note.c2{ background:var(--blue); border-color:var(--blue); color:#fff; }
+  .note.c3{ background:linear-gradient(160deg, #fff 0%, var(--paper-dim) 100%); }
+  .note p{ margin:0 0 14px; font-size:15px; line-height:1.85; font-weight:400; white-space:pre-wrap; }
+  .note footer{ display:flex; justify-content:space-between; gap:10px; font-size:12.5px; letter-spacing:.06em; opacity:.8; }
+  .note footer b{ font-family:'Noto Serif KR', serif; font-weight:500; }
+  .empty{ color:var(--ink-soft); font-size:14px; }
+  .demo{ display:none; margin:0 0 18px; padding:10px 14px; border:1px dashed var(--ink-soft); font-size:13px; color:var(--ink-soft); max-width:620px; }
+  body.is-demo .demo{ display:block; }
+  @keyframes rise{ from{ opacity:0; transform:translateY(10px); } to{ opacity:1; transform:none; } }
+  @media (prefers-reduced-motion: reduce){ .note{ animation:none; } }
+  :focus-visible{ outline:2px solid var(--ink); outline-offset:3px; }
+
+  /* ── 모바일 (폰 화면) ── */
+  @media (max-width:600px){
+    header{ height:54px; padding:0 16px; }
+    .wrap{ padding:0 18px; }
+    .intro{ padding:44px 0 26px; }
+    .intro .big{ font-size:clamp(52px, 17vw, 80px); margin-bottom:20px; }
+    .intro h1{ font-size:21px; }
+    .intro p{ font-size:14.5px; }
+    .write{ padding:20px 16px 18px; margin:0 -2px; }
+    .colors{ gap:12px; }
+    .colors label, .colors i{ width:28px; height:28px; }          /* 손가락으로 누르기 쉽게 */
+    .send{ width:100%; padding:15px 0; font-size:15px; }
+    .wall-head{ margin-top:48px; }
+    .note{ padding:18px 18px 14px; }
+    .note p{ font-size:15px; }
+  }
+</style>
+</head>
+<body>
+<header>
+  <a class="brand" id="brandLink" href="#"><img src="butterfly.png" alt=""><span>단장</span></a>
+  <a class="home-btn" id="homeLink" href="#">홈페이지</a>
+</header>
+
+<main class="wrap">
+  <section class="intro">
+    <p class="big" aria-hidden="true">Guestbook</p>
+    <h1><span class="nb">졸업을 눈앞에 둔</span> <span class="nb">4학년 졸업생,</span><br><span class="nb">Team 단장입니다.</span></h1>
+    <p><span class="nb">여러분의 짧은 한 줄이</span> <span class="nb">단장팀에게 큰 도움이 됩니다.</span></p>
+  </section>
+
+  <p class="demo">미리보기 모드예요. 아직 저장소가 연결되지 않아 예시 글이 보이고, 남긴 글은 이 화면에서만 보였다가 사라져요.</p>
+
+  <form class="write" id="form" autocomplete="off" novalidate>
+    <label class="field"><span>이름</span>
+      <input type="text" id="name" maxlength="20" placeholder="이름 또는 별명" required></label>
+    <label class="field"><span>메시지</span>
+      <textarea id="message" maxlength="300" placeholder="남기고 싶은 한마디를 적어 주세요." required></textarea></label>
+    <label class="hp" aria-hidden="true">비워 두세요 <input type="text" id="website" tabindex="-1"></label>
+    <div class="row">
+      <div class="colors" role="radiogroup" aria-label="카드 색">
+        <span>카드 색</span>
+        <label><input type="radio" name="color" value="0" checked aria-label="흰색"><i style="background:#fff"></i></label>
+        <label><input type="radio" name="color" value="1" aria-label="연한 하늘색"><i style="background:#D0E2F6"></i></label>
+        <label><input type="radio" name="color" value="2" aria-label="하늘색"><i style="background:#4A8EDA;border-color:#4A8EDA"></i></label>
+        <label><input type="radio" name="color" value="3" aria-label="그라데이션"><i style="background:linear-gradient(160deg,#fff,#D0E2F6)"></i></label>
+      </div>
+      <span class="count" id="count">0 / 300</span>
+    </div>
+    <div class="row" style="margin-top:18px">
+      <button class="send" id="send" type="submit">남기기</button>
+    </div>
+    <p class="notice"><span class="nb">게시한 글은 수정 및 삭제할 수 없으니</span> <span class="nb">유의하시기 바랍니다.</span></p>
+    <p class="msg" id="status" role="status" aria-live="polite"></p>
+  </form>
+
+  <div class="wall-head"><h2>남겨진 글</h2><span id="total"></span></div>
+  <div class="wall" id="wall" aria-live="polite"></div>
+</main>
+
+<script>
+(function(){
+  const C = window.GUESTBOOK_CONFIG || {};
+  const $ = id => document.getElementById(id);
+  const wall = $('wall'), form = $('form'), nameEl = $('name'), msgEl = $('message'), statusEl = $('status'), sendBtn = $('send');
+  if (C.HOME_URL){ $('homeLink').href = C.HOME_URL; $('brandLink').href = C.HOME_URL; }
+
+  const live = !!(C.SUPABASE_URL && C.SUPABASE_ANON_KEY);
+  const API = live ? C.SUPABASE_URL.replace(/\/+$/,'').replace(/\/rest\/v1$/,'') + '/rest/v1/guestbook' : '';
+  const H = live ? { apikey:C.SUPABASE_ANON_KEY, Authorization:'Bearer ' + C.SUPABASE_ANON_KEY, 'Content-Type':'application/json' } : {};
+  const COLS = 'select=id,name,message,color,created_at&order=created_at.desc';
+  async function fetchRows(limit){
+    const r = await fetch(`${API}?${COLS}&limit=${limit}`, {headers:H, cache:'no-store'});
+    if (!r.ok) throw new Error(r.status + ' ' + await r.text());
+    return r.json();
+  }
+  if (!live) document.body.classList.add('is-demo');
+
+  const seen = new Set(); let total = 0;
+  const fmt = iso => { const d = new Date(iso); return `${d.getFullYear()}.${String(d.getMonth()+1).padStart(2,'0')}.${String(d.getDate()).padStart(2,'0')}`; };
+  function card(row, top){
+    if (row.id != null && seen.has(row.id)) return;
+    if (row.id != null) seen.add(row.id);
+    const el = document.createElement('article');
+    el.className = 'note c' + (Math.max(0, Math.min(3, row.color|0)));
+    const p = document.createElement('p'); p.textContent = row.message;
+    const f = document.createElement('footer');
+    const b = document.createElement('b'); b.textContent = row.name;
+    const t = document.createElement('span'); t.textContent = fmt(row.created_at);
+    f.append(b, t); el.append(p, f);
+    const empty = wall.querySelector('.empty'); if (empty) empty.remove();
+    top ? wall.prepend(el) : wall.append(el);
+    total++; $('total').textContent = `${total}개의 흔적`;
+  }
+  function showEmpty(){ if (!wall.children.length){ const e = document.createElement('p'); e.className='empty'; e.textContent='아직 남겨진 글이 없어요. 첫 흔적을 남겨 주세요.'; wall.append(e); } }
+
+  async function load(){
+    if (!live){
+      const now = Date.now();
+      [{id:-1,name:'단장',message:'디지털 납골당에 와 주셔서 고맙습니다.\n남기신 한마디는 이곳에 조용히 쌓여요.',color:1,created_at:new Date(now).toISOString()},
+       {id:-2,name:'예시',message:'정리하지 못한 계정들이 떠올랐어요.',color:0,created_at:new Date(now-864e5).toISOString()},
+       {id:-3,name:'예시',message:'흔적을 곱게 매만진다는 말이 오래 남네요.',color:2,created_at:new Date(now-1728e5).toISOString()}].forEach(r => card(r));
+      return;
+    }
+    try { (await fetchRows(300)).forEach(r => card(r)); }
+    catch(err){ console.error(err); statusEl.textContent = '글을 불러오지 못했어요. 잠시 후 새로고침해 주세요.'; }
+    showEmpty();
+    // 새 글 확인: 10초마다 (화면을 보고 있을 때만)
+    setInterval(async () => {
+      if (document.hidden) return;
+      try { (await fetchRows(20)).reverse().forEach(r => card(r, true)); } catch(_){}
+    }, 10000);
+  }
+
+  msgEl.addEventListener('input', () => { $('count').textContent = `${msgEl.value.length} / 300`; });
+
+  form.addEventListener('submit', async e => {
+    e.preventDefault();
+    const name = nameEl.value.trim(), message = msgEl.value.trim();
+    const color = +(form.querySelector('input[name=color]:checked') || {}).value || 0;
+    if ($('website').value) return;                                   // 스팸 로봇
+    if (!name){ statusEl.textContent = '이름을 적어 주세요.'; nameEl.focus(); return; }
+    if (!message){ statusEl.textContent = '메시지를 적어 주세요.'; msgEl.focus(); return; }
+    let last = 0; try { last = +localStorage.getItem('gb-last') || 0; } catch(_){}
+    if (Date.now() - last < 30000){ statusEl.textContent = '잠시 후 다시 남겨 주세요.'; return; }
+    sendBtn.disabled = true; statusEl.textContent = '남기는 중…';
+    if (!live){
+      card({id:'d'+Date.now(), name, message, color, created_at:new Date().toISOString()}, true);
+    } else {
+      let data = null;
+      try {
+        const r = await fetch(API, {method:'POST', headers:Object.assign({Prefer:'return=representation'}, H), body:JSON.stringify({name, message, color})});
+        if (!r.ok) throw new Error(r.status + ' ' + await r.text());
+        data = (await r.json())[0];
+      } catch(err){ console.error(err); statusEl.textContent = '남기지 못했어요. 잠시 후 다시 시도해 주세요.'; sendBtn.disabled = false; return; }
+      card(data, true);
+    }
+    try { localStorage.setItem('gb-last', String(Date.now())); } catch(_){}
+    form.reset(); $('count').textContent = '0 / 300';
+    statusEl.textContent = '흔적이 남겨졌어요. 고맙습니다.';
+    setTimeout(() => { sendBtn.disabled = false; }, 3000);
+    wall.scrollIntoView({behavior:'smooth', block:'start'});
+  });
+
+  load();
+})();
+</script>
+</body>
+</html>
