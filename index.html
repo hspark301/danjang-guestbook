@@ -13,8 +13,8 @@
 /* ════════ 설정: Supabase 프로젝트 정보 (설치 방법 4단계에서 복사해 넣기) ════════
    비워 두면 '미리보기 모드'로 열려요 (예시 글이 보이고, 남긴 글은 저장되지 않음). */
 window.GUESTBOOK_CONFIG = {
-  SUPABASE_URL: "",        // 예: "https://abcdefghijk.supabase.co"
-  SUPABASE_ANON_KEY: "",   // 예: "eyJhbGciOi..." (anon public 키)
+  SUPABASE_URL: "https://npnuitgxdoolohnjnbhu.supabase.co",        // 예: "https://abcdefghijk.supabase.co"
+  SUPABASE_ANON_KEY: "eyJhbGciOiJIUzI1NiIsInR5cCI6IkpXVCJ9.eyJpc3MiOiJzdXBhYmFzZSIsInJlZiI6Im5wbnVpdGd4ZG9vbG9obmpuYmh1Iiwicm9sZSI6ImFub24iLCJpYXQiOjE3OTE4OTY5MzgsImV4cCI6MjEwNzQ3MjkzOH0.hUdajMBanwu7r2zxxG571C3gq1xogvUi5ZHBqz8VnNg",   // 예: "eyJhbGciOi..." (anon public 키)
   HOME_URL: "https://claude.ai/artifact/4BdQBQCxti6nyeUnmfwwpH"   // 단장 홈페이지 주소
 };
 </script>
@@ -140,7 +140,6 @@ window.GUESTBOOK_CONFIG = {
   <div class="wall" id="wall" aria-live="polite"></div>
 </main>
 
-<script src="https://cdn.jsdelivr.net/npm/@supabase/supabase-js@2.45.4/dist/umd/supabase.js"></script>
 <script>
 (function(){
   const C = window.GUESTBOOK_CONFIG || {};
@@ -148,8 +147,15 @@ window.GUESTBOOK_CONFIG = {
   const wall = $('wall'), form = $('form'), nameEl = $('name'), msgEl = $('message'), statusEl = $('status'), sendBtn = $('send');
   if (C.HOME_URL){ $('homeLink').href = C.HOME_URL; $('brandLink').href = C.HOME_URL; }
 
-  const live = !!(C.SUPABASE_URL && C.SUPABASE_ANON_KEY && window.supabase);
-  const db = live ? window.supabase.createClient(C.SUPABASE_URL, C.SUPABASE_ANON_KEY) : null;
+  const live = !!(C.SUPABASE_URL && C.SUPABASE_ANON_KEY);
+  const API = live ? C.SUPABASE_URL.replace(/\/+$/,'').replace(/\/rest\/v1$/,'') + '/rest/v1/guestbook' : '';
+  const H = live ? { apikey:C.SUPABASE_ANON_KEY, Authorization:'Bearer ' + C.SUPABASE_ANON_KEY, 'Content-Type':'application/json' } : {};
+  const COLS = 'select=id,name,message,color,created_at&order=created_at.desc';
+  async function fetchRows(limit){
+    const r = await fetch(`${API}?${COLS}&limit=${limit}`, {headers:H, cache:'no-store'});
+    if (!r.ok) throw new Error(r.status + ' ' + await r.text());
+    return r.json();
+  }
   if (!live) document.body.classList.add('is-demo');
 
   const seen = new Set(); let total = 0;
@@ -178,15 +184,14 @@ window.GUESTBOOK_CONFIG = {
        {id:-3,name:'예시',message:'흔적을 곱게 매만진다는 말이 오래 남네요.',color:2,created_at:new Date(now-1728e5).toISOString()}].forEach(r => card(r));
       return;
     }
-    const { data, error } = await db.from('guestbook').select('id,name,message,color,created_at').order('created_at', {ascending:false}).limit(300);
-    if (error){ statusEl.textContent = '글을 불러오지 못했어요. 잠시 후 새로고침해 주세요.'; showEmpty(); return; }
-    data.forEach(r => card(r)); showEmpty();
-    // 새 글이 올라오면 바로 보이게 (실시간) + 혹시 몰라 30초마다 새로 확인
-    db.channel('guestbook').on('postgres_changes', {event:'INSERT', schema:'public', table:'guestbook'}, p => card(p.new, true)).subscribe();
+    try { (await fetchRows(300)).forEach(r => card(r)); }
+    catch(err){ console.error(err); statusEl.textContent = '글을 불러오지 못했어요. 잠시 후 새로고침해 주세요.'; }
+    showEmpty();
+    // 새 글 확인: 10초마다 (화면을 보고 있을 때만)
     setInterval(async () => {
-      const { data } = await db.from('guestbook').select('id,name,message,color,created_at').order('created_at', {ascending:false}).limit(20);
-      (data || []).reverse().forEach(r => card(r, true));
-    }, 30000);
+      if (document.hidden) return;
+      try { (await fetchRows(20)).reverse().forEach(r => card(r, true)); } catch(_){}
+    }, 10000);
   }
 
   msgEl.addEventListener('input', () => { $('count').textContent = `${msgEl.value.length} / 300`; });
@@ -204,8 +209,12 @@ window.GUESTBOOK_CONFIG = {
     if (!live){
       card({id:'d'+Date.now(), name, message, color, created_at:new Date().toISOString()}, true);
     } else {
-      const { data, error } = await db.from('guestbook').insert({name, message, color}).select().single();
-      if (error){ statusEl.textContent = '남기지 못했어요. 잠시 후 다시 시도해 주세요.'; sendBtn.disabled = false; return; }
+      let data = null;
+      try {
+        const r = await fetch(API, {method:'POST', headers:Object.assign({Prefer:'return=representation'}, H), body:JSON.stringify({name, message, color})});
+        if (!r.ok) throw new Error(r.status + ' ' + await r.text());
+        data = (await r.json())[0];
+      } catch(err){ console.error(err); statusEl.textContent = '남기지 못했어요. 잠시 후 다시 시도해 주세요.'; sendBtn.disabled = false; return; }
       card(data, true);
     }
     try { localStorage.setItem('gb-last', String(Date.now())); } catch(_){}
